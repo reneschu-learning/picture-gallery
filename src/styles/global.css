@@ -7,6 +7,7 @@
   --color-accent: #2f6f8f;
   --color-accent-soft: #dbeaf2;
   --shadow-soft: 0 10px 30px rgba(30, 34, 38, 0.12);
+  --shadow-dramatic: 0 12px 32px rgba(0, 0, 0, 0.25);
   --radius-lg: 20px;
   --radius-md: 12px;
   --space-1: 0.5rem;
@@ -16,6 +17,9 @@
   --space-5: 2rem;
   --space-6: 3rem;
   --layout-max: 1180px;
+  --polaroid-border: 16px;
+  --polaroid-border-bottom: 48px;
+  --image-rotation: 0deg;
 
   font-family: 'Avenir Next', 'Trebuchet MS', sans-serif;
   line-height: 1.4;
@@ -121,10 +125,20 @@ body {
 
 .image-card {
   margin: 0;
-  border-radius: var(--radius-md);
+  border-radius: 0;
   overflow: hidden;
-  border: 1px solid var(--color-border);
-  background: var(--color-card);
+  background: white;
+  padding: var(--polaroid-border) var(--polaroid-border) var(--polaroid-border-bottom) var(--polaroid-border);
+  box-shadow: var(--shadow-soft);
+  transform: rotate(var(--image-rotation));
+  transform-origin: center;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.image-card:hover {
+  transform: translateY(-8px) rotate(calc(var(--image-rotation) * 0.3)) scale(1.02);
+  box-shadow: var(--shadow-dramatic);
 }
 
 .gallery-image {
@@ -132,6 +146,7 @@ body {
   aspect-ratio: 1 / 1;
   object-fit: cover;
   display: block;
+  border-radius: 0;
 }
 
 .about-list {

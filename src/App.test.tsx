@@ -30,6 +30,6 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: /about/i })).toBeInTheDocument()
     expect(screen.getByText(/demo application/i)).toBeInTheDocument()
     expect(screen.getByText(/microsoft/i)).toBeInTheDocument()
-    expect(screen.getByText(/1.0.1/i)).toBeInTheDocument()
+    expect(screen.getByText(/1.2.0/i)).toBeInTheDocument()
   })
 })
