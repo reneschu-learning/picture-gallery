@@ -30,3 +30,24 @@ If you are developing a production application, we recommend enabling type-aware
 ```
 
 See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+
+## Docker images
+
+Use Docker Buildx to build separate Linux images for `amd64` and `arm64` from the same source Dockerfile.
+
+Build both images locally:
+
+```sh
+docker buildx bake
+```
+
+Build and push both images with a custom repository name:
+
+```sh
+docker buildx bake --set *.output=type=registry IMAGE_NAME=ghcr.io/your-org/picture-gallery
+```
+
+This produces two tags:
+
+- `ghcr.io/your-org/picture-gallery:linux-amd64`
+- `ghcr.io/your-org/picture-gallery:linux-arm64`

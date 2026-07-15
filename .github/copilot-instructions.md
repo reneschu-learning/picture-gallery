@@ -61,3 +61,8 @@ These instructions always apply to this repository.
 - Tests pass for changed behavior.
 - UI is responsive and visually coherent across breakpoints.
 - Code is organized for long-term maintenance and future backend integration.
+
+## Versioning
+- Use semantic versioning for releases.
+- Keep the vesion in package.json in sync with the git tag for releases.
+- Use the same version for the Docker image tag as well.
