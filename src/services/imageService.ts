@@ -2,7 +2,7 @@ import type { GalleryImage } from '../types'
 
 const IMAGE_SIZE = 720
 const MIN_IMAGE_ID = 10
-const MAX_IMAGE_ID = 1100
+const MAX_IMAGE_ID = 1000
 const DEFAULT_ALT = 'Picture from the gallery'
 
 function getRandomInt(min: number, max: number): number {
