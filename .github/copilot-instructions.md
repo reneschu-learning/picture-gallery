@@ -64,5 +64,6 @@ These instructions always apply to this repository.
 
 ## Versioning
 - Use semantic versioning for releases.
-- Keep the vesion in package.json in sync with the git tag for releases.
+- Keep the version in package.json in sync with the git tag for releases.
 - Use the same version for the Docker image tag as well.
+- Always use the same version in the web page's about page and in the HTML page title in index.html!
