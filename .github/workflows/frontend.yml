@@ -1,4 +1,4 @@
-name: Build and Push to ACR
+name: Build and Push Frontend
 
 on: workflow_dispatch
 
@@ -31,7 +31,7 @@ jobs:
       - name: Resolve and validate release version
         id: version
         run: |
-          package_version=$(node -p "require('./package.json').version")
+          package_version=$(node -p "require('./frontend/package.json').version")
           echo "package=$package_version" >> "$GITHUB_OUTPUT"
 
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
@@ -57,7 +57,8 @@ jobs:
       - name: Build and push multi-arch image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./frontend
+          file: ./frontend/Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
