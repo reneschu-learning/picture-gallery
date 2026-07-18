@@ -1,3 +1,7 @@
+---
+applyTo: 'frontend/**'
+---
+
 # React Static Gallery Quality
 
 These instructions always apply to this repository.
