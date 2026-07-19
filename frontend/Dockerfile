@@ -7,14 +7,20 @@ RUN npm ci
 COPY . .
 RUN npm run build
 
-FROM --platform=$TARGETPLATFORM nginx:1.27-alpine AS runtime
+FROM --platform=$TARGETPLATFORM node:20-alpine AS runtime
 
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /app/dist /usr/share/nginx/html
-COPY docker-entrypoint.d/40-runtime-config.sh /docker-entrypoint.d/40-runtime-config.sh
+WORKDIR /app
 
-RUN chmod +x /docker-entrypoint.d/40-runtime-config.sh
+ENV NODE_ENV=production \
+	PORT=80
 
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY --from=build /app/dist ./dist
+COPY server.mjs ./server.mjs
+
+# Keep compatibility for existing reverse-proxy assumptions by serving on port 80.
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["node", "server.mjs"]

@@ -27,4 +27,5 @@ export interface RuntimeConfig {
   CONFIG_FILE_CONTENT: RuntimeConfigFileContent
   CONFIG_FILE_VOL: string
   CONFIG_FILE_VOL_CONTENT: RuntimeConfigFileContent
+  BACKEND_SERVICE: string
 }

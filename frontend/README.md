@@ -1,53 +1,88 @@
-# React + TypeScript + Vite
+# Picture Gallery Frontend v2.0.0
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+This frontend is a React + TypeScript app built with Vite and served by a Node runtime server.
+Unlike the previous static Nginx runtime, runtime values are now read on demand from the container environment and local files by the frontend server.
 
-Currently, two official plugins are available:
+## Runtime architecture
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Client application: React SPA
+- Runtime server: Node + Express
+- Static asset build: Vite output in dist/
+- Frontend runtime API:
+  - GET /api/runtime-config
+  - POST /api/visit-log
 
-## React Compiler
+The client reads runtime values from /api/runtime-config instead of window-injected startup scripts.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Environment variables
 
-## Expanding the Oxlint configuration
+- CONFIG_VAR1
+- SECRET1
+- CONFIG_FILE
+- CONFIG_FILE_VOL
+- BACKEND_SERVICE
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+Behavior notes:
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+- CONFIG_FILE content is read directly by the frontend server from container filesystem.
+- CONFIG_FILE_VOL content is resolved by calling BACKEND_SERVICE/getContent?path=<CONFIG_FILE_VOL>.
+- If BACKEND_SERVICE is missing, CONFIG_FILE_VOL content is returned as ERROR: Backend not configured.
+- If BACKEND_SERVICE is unreachable, CONFIG_FILE_VOL content is returned as ERROR: Backend not reachable.
+
+## Page visit logging
+
+Each route visit sends page metadata to POST /api/visit-log with:
+
+- current timestamp
+- browser user agent
+- logical page name
+
+The frontend server forwards this as a log string to BACKEND_SERVICE/log when BACKEND_SERVICE is configured.
+If BACKEND_SERVICE is missing, no backend log request is made.
+If backend logging fails, the error is intentionally ignored.
+
+## Development
+
+Install dependencies:
+
+```sh
+npm ci
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Run development mode:
 
-## Docker images
+```sh
+npm run dev
+```
 
-Use Docker Buildx to build separate Linux images for `amd64` and `arm64` from the same source Dockerfile.
+Run tests:
 
-Build both images locally:
+```sh
+npm run test
+```
+
+Create production build:
+
+```sh
+npm run build
+```
+
+Run production server locally (after build):
+
+```sh
+npm run start
+```
+
+## Docker image builds
+
+Build multi-arch images with Buildx:
 
 ```sh
 docker buildx bake
 ```
 
-Build and push both images with a custom repository name:
+Build and push with a custom repository:
 
 ```sh
 docker buildx bake --set *.output=type=registry IMAGE_NAME=ghcr.io/your-org/picture-gallery
 ```
-
-This produces two tags:
-
-- `ghcr.io/your-org/picture-gallery:linux-amd64`
-- `ghcr.io/your-org/picture-gallery:linux-arm64`

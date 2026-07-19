@@ -1,4 +1,6 @@
-import { getRuntimeConfig } from '../services/runtimeConfig'
+import { useEffect, useState } from 'react'
+import { DEFAULT_CONFIG, getRuntimeConfig } from '../services/runtimeConfig'
+import type { RuntimeConfig } from '../types'
 import type { RuntimeConfigFileContent } from '../types'
 
 function formatConfigValue(value: string | RuntimeConfigFileContent): string {
@@ -6,7 +8,21 @@ function formatConfigValue(value: string | RuntimeConfigFileContent): string {
 }
 
 function Config() {
-  const config = getRuntimeConfig()
+  const [config, setConfig] = useState<RuntimeConfig>(DEFAULT_CONFIG)
+
+  useEffect(() => {
+    let isMounted = true
+
+    void getRuntimeConfig().then((nextConfig) => {
+      if (isMounted) {
+        setConfig(nextConfig)
+      }
+    })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   return (
     <main className="content-panel" aria-labelledby="config-heading">
@@ -48,6 +64,12 @@ function Config() {
           <dt>CONFIG_FILE_VOL content</dt>
           <dd>
             <pre className="config-value">{formatConfigValue(config.CONFIG_FILE_VOL_CONTENT)}</pre>
+          </dd>
+        </div>
+        <div className="about-row">
+          <dt>BACKEND_SERVICE</dt>
+          <dd>
+            <pre className="config-value">{formatConfigValue(config.BACKEND_SERVICE)}</pre>
           </dd>
         </div>
       </dl>

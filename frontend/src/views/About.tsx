@@ -3,7 +3,7 @@ import type { AboutInfo } from '../types'
 const aboutInfo: AboutInfo = {
   purpose: 'Demo application',
   author: 'Microsoft',
-  version: '1.3.1',
+  version: '2.0.0',
 }
 
 function About() {
