@@ -21,9 +21,27 @@ function createJsonResponse(payload: unknown, status = 200): Response {
 }
 
 function installFetchMock(runtimeConfigPayload = defaultRuntimeConfigPayload) {
-  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+  let isUnhealthy = false
+
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (input, init) => {
     if (typeof input === 'string' && input === '/api/runtime-config') {
       return createJsonResponse(runtimeConfigPayload)
+    }
+
+    if (typeof input === 'string' && input === '/api/health-state') {
+      const requestInit = init as RequestInit | undefined
+      const method = requestInit?.method ?? 'GET'
+
+      if (method === 'POST') {
+        const payload = JSON.parse((requestInit?.body as string) ?? '{}') as Record<string, unknown>
+        if (typeof payload.isUnhealthy !== 'boolean') {
+          return createJsonResponse({ error: 'isUnhealthy must be a boolean' }, 400)
+        }
+
+        isUnhealthy = payload.isUnhealthy
+      }
+
+      return createJsonResponse({ isUnhealthy })
     }
 
     if (typeof input === 'string' && input === '/api/visit-log') {
@@ -75,7 +93,7 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: /about/i })).toBeInTheDocument()
     expect(screen.getByText(/demo application/i)).toBeInTheDocument()
     expect(screen.getByText(/microsoft/i)).toBeInTheDocument()
-    expect(screen.getByText(/2.0.1/i)).toBeInTheDocument()
+    expect(screen.getByText(/2.1.0/i)).toBeInTheDocument()
 
     const loggedPages = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls
       .filter(([url]) => url === '/api/visit-log')
@@ -121,5 +139,39 @@ describe('App', () => {
     expect(screen.getByText('/mnt/secrets/vol.conf')).toBeInTheDocument()
     expect(screen.getByText('ERROR: Backend not configured')).toBeInTheDocument()
     expect(screen.getByText('N/A')).toBeInTheDocument()
+  })
+
+  it('toggles frontend health mode from config page', async () => {
+    const user = userEvent.setup()
+    renderApp('/')
+
+    await user.click(screen.getByRole('link', { name: /config/i }))
+
+    const toggle = screen.getByRole('checkbox', {
+      name: /set frontend health endpoint to unhealthy/i,
+    })
+
+    expect(toggle).not.toBeChecked()
+    expect(screen.getByText(/frontend health is healthy/i)).toBeInTheDocument()
+
+    await user.click(toggle)
+
+    expect(toggle).toBeChecked()
+    expect(screen.getByText(/frontend health is unhealthy/i)).toBeInTheDocument()
+
+    const healthStateCalls = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.filter(
+      ([url]) => url === '/api/health-state',
+    )
+
+    expect(healthStateCalls.length).toBeGreaterThanOrEqual(2)
+    const postCall = healthStateCalls.find(([, callInit]) => (callInit as RequestInit)?.method === 'POST')
+    expect(postCall).toBeDefined()
+
+    if (!postCall) {
+      return
+    }
+
+    const [, postRequest] = postCall
+    expect(JSON.parse((postRequest as RequestInit).body as string)).toEqual({ isUnhealthy: true })
   })
 })

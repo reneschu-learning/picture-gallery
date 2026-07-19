@@ -29,3 +29,7 @@ export interface RuntimeConfig {
   CONFIG_FILE_VOL_CONTENT: RuntimeConfigFileContent
   BACKEND_SERVICE: string
 }
+
+export interface FrontendHealthState {
+  isUnhealthy: boolean
+}

@@ -15,6 +15,8 @@ const distDirectory = path.join(__dirname, 'dist')
 const app = express()
 app.use(express.json())
 
+let isUnhealthy = false
+
 function hasValue(value) {
   return typeof value === 'string' && value.length > 0
 }
@@ -121,6 +123,33 @@ app.post('/api/visit-log', async (request, response) => {
   }
 
   response.json({ status: 'ok' })
+})
+
+app.get('/api/health-state', (_request, response) => {
+  response.json({ isUnhealthy })
+})
+
+app.post('/api/health-state', (request, response) => {
+  const payload = typeof request.body === 'object' && request.body !== null ? request.body : {}
+
+  if (typeof payload.isUnhealthy !== 'boolean') {
+    response.status(400).json({ error: 'isUnhealthy must be a boolean' })
+    return
+  }
+
+  isUnhealthy = payload.isUnhealthy
+  response.json({ isUnhealthy })
+})
+
+app.get('/health', (_request, response) => {
+  const payload = { timestamp: new Date().toISOString() }
+
+  if (isUnhealthy) {
+    response.status(503).json(payload)
+    return
+  }
+
+  response.json(payload)
 })
 
 app.use(express.static(distDirectory))
