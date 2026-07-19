@@ -11,11 +11,7 @@ const BACKEND_NOT_REACHABLE = 'ERROR: Backend not reachable'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const distDirectory = path.join(__dirname, 'dist')
-
-const app = express()
-app.use(express.json())
-
-let isUnhealthy = false
+const DEFAULT_STARTUP_DELAY_MS = 30_000
 
 function hasValue(value) {
   return typeof value === 'string' && value.length > 0
@@ -76,91 +72,130 @@ async function configFileVolContent(backendService, configFileVol) {
   }
 }
 
-app.get('/api/runtime-config', async (_request, response) => {
-  const configVar1 = process.env.CONFIG_VAR1
-  const secret1 = process.env.SECRET1
-  const configFile = process.env.CONFIG_FILE
-  const configFileVol = process.env.CONFIG_FILE_VOL
-  const backendService = process.env.BACKEND_SERVICE
+export function createApp({ startupDelayMs = DEFAULT_STARTUP_DELAY_MS, now = Date.now } = {}) {
+  const app = express()
+  app.use(express.json())
 
-  const payload = {
-    CONFIG_VAR1: valueOrDefault(configVar1),
-    SECRET1: valueOrDefault(secret1),
-    CONFIG_FILE: valueOrDefault(configFile),
-    CONFIG_FILE_CONTENT: await fileContentOrStatus(configFile),
-    CONFIG_FILE_VOL: valueOrDefault(configFileVol),
-    CONFIG_FILE_VOL_CONTENT: await configFileVolContent(backendService, configFileVol),
-    BACKEND_SERVICE: valueOrDefault(backendService),
+  let isUnhealthy = false
+  const startupStartedAt = now()
+
+  function isInStartupDelay() {
+    return now() - startupStartedAt < startupDelayMs
   }
 
-  response.json(payload)
-})
+  app.use((request, response, next) => {
+    if (request.path === '/health') {
+      next()
+      return
+    }
 
-app.post('/api/visit-log', async (request, response) => {
-  const payload = typeof request.body === 'object' && request.body !== null ? request.body : {}
+    if (!isInStartupDelay()) {
+      next()
+      return
+    }
 
-  const page = hasValue(payload.page) ? payload.page : 'unknown'
-  const userAgent = hasValue(payload.userAgent) ? payload.userAgent : 'unknown'
-  const timestamp = hasValue(payload.timestamp) ? payload.timestamp : new Date().toISOString()
-  const backendService = process.env.BACKEND_SERVICE
+    response.status(503).json({ error: 'Frontend server is starting up' })
+  })
 
-  if (!hasValue(backendService)) {
-    response.json({ status: 'skipped' })
-    return
-  }
+  app.get('/api/runtime-config', async (_request, response) => {
+    const configVar1 = process.env.CONFIG_VAR1
+    const secret1 = process.env.SECRET1
+    const configFile = process.env.CONFIG_FILE
+    const configFileVol = process.env.CONFIG_FILE_VOL
+    const backendService = process.env.BACKEND_SERVICE
 
-  const message = `time=${timestamp}; userAgent=${userAgent}; page=${page}`
+    const payload = {
+      CONFIG_VAR1: valueOrDefault(configVar1),
+      SECRET1: valueOrDefault(secret1),
+      CONFIG_FILE: valueOrDefault(configFile),
+      CONFIG_FILE_CONTENT: await fileContentOrStatus(configFile),
+      CONFIG_FILE_VOL: valueOrDefault(configFileVol),
+      CONFIG_FILE_VOL_CONTENT: await configFileVolContent(backendService, configFileVol),
+      BACKEND_SERVICE: valueOrDefault(backendService),
+    }
 
-  try {
-    const url = toBackendUrl(backendService, 'log')
-    await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message }),
-    })
-  } catch {
-    // Intentionally ignored: logging should never break user flow.
-  }
+    response.json(payload)
+  })
 
-  response.json({ status: 'ok' })
-})
+  app.post('/api/visit-log', async (request, response) => {
+    const payload = typeof request.body === 'object' && request.body !== null ? request.body : {}
 
-app.get('/api/health-state', (_request, response) => {
-  response.json({ isUnhealthy })
-})
+    const page = hasValue(payload.page) ? payload.page : 'unknown'
+    const userAgent = hasValue(payload.userAgent) ? payload.userAgent : 'unknown'
+    const timestamp = hasValue(payload.timestamp) ? payload.timestamp : new Date().toISOString()
+    const backendService = process.env.BACKEND_SERVICE
 
-app.post('/api/health-state', (request, response) => {
-  const payload = typeof request.body === 'object' && request.body !== null ? request.body : {}
+    if (!hasValue(backendService)) {
+      response.json({ status: 'skipped' })
+      return
+    }
 
-  if (typeof payload.isUnhealthy !== 'boolean') {
-    response.status(400).json({ error: 'isUnhealthy must be a boolean' })
-    return
-  }
+    const message = `time=${timestamp}; userAgent=${userAgent}; page=${page}`
 
-  isUnhealthy = payload.isUnhealthy
-  response.json({ isUnhealthy })
-})
+    try {
+      const url = toBackendUrl(backendService, 'log')
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message }),
+      })
+    } catch {
+      // Intentionally ignored: logging should never break user flow.
+    }
 
-app.get('/health', (_request, response) => {
-  const payload = { timestamp: new Date().toISOString() }
+    response.json({ status: 'ok' })
+  })
 
-  if (isUnhealthy) {
-    response.status(503).json(payload)
-    return
-  }
+  app.get('/api/health-state', (_request, response) => {
+    response.json({ isUnhealthy })
+  })
 
-  response.json(payload)
-})
+  app.post('/api/health-state', (request, response) => {
+    const payload = typeof request.body === 'object' && request.body !== null ? request.body : {}
 
-app.use(express.static(distDirectory))
+    if (typeof payload.isUnhealthy !== 'boolean') {
+      response.status(400).json({ error: 'isUnhealthy must be a boolean' })
+      return
+    }
 
-// Express 5 requires named wildcards; this catches all SPA routes.
-app.get('/{*path}', (_request, response) => {
-  response.sendFile(path.join(distDirectory, 'index.html'))
-})
+    isUnhealthy = payload.isUnhealthy
+    response.json({ isUnhealthy })
+  })
 
-const port = Number(process.env.PORT ?? '80')
-app.listen(port, () => {
-  // eslint-disable-next-line no-console
-  console.log(`Frontend server listening on ${port}`)
-})
+  app.get('/health', (_request, response) => {
+    const payload = { timestamp: new Date().toISOString() }
+
+    if (isInStartupDelay()) {
+      response.status(500).json(payload)
+      return
+    }
+
+    if (isUnhealthy) {
+      response.status(503).json(payload)
+      return
+    }
+
+    response.json(payload)
+  })
+
+  app.use(express.static(distDirectory))
+
+  // Express 5 requires named wildcards; this catches all SPA routes.
+  app.get('/{*path}', (_request, response) => {
+    response.sendFile(path.join(distDirectory, 'index.html'))
+  })
+
+  return app
+}
+
+export function startServer({ port = Number(process.env.PORT ?? '80') } = {}) {
+  const app = createApp()
+  return app.listen(port, () => {
+    // eslint-disable-next-line no-console
+    console.log(`Frontend server listening on ${port}`)
+  })
+}
+
+if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {
+  startServer()
+}
