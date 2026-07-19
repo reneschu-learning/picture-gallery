@@ -1,4 +1,4 @@
-# Picture Gallery Frontend v2.0.0
+# Picture Gallery Frontend v2.0.1
 
 This frontend is a React + TypeScript app built with Vite and served by a Node runtime server.
 Unlike the previous static Nginx runtime, runtime values are now read on demand from the container environment and local files by the frontend server.

@@ -125,7 +125,8 @@ app.post('/api/visit-log', async (request, response) => {
 
 app.use(express.static(distDirectory))
 
-app.get('*', (_request, response) => {
+// Express 5 requires named wildcards; this catches all SPA routes.
+app.get('/{*path}', (_request, response) => {
   response.sendFile(path.join(distDirectory, 'index.html'))
 })
 

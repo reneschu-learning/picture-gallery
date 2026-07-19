@@ -75,7 +75,7 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: /about/i })).toBeInTheDocument()
     expect(screen.getByText(/demo application/i)).toBeInTheDocument()
     expect(screen.getByText(/microsoft/i)).toBeInTheDocument()
-    expect(screen.getByText(/2.0.0/i)).toBeInTheDocument()
+    expect(screen.getByText(/2.0.1/i)).toBeInTheDocument()
 
     const loggedPages = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls
       .filter(([url]) => url === '/api/visit-log')
