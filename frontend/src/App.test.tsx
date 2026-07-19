@@ -35,7 +35,7 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: /about/i })).toBeInTheDocument()
     expect(screen.getByText(/demo application/i)).toBeInTheDocument()
     expect(screen.getByText(/microsoft/i)).toBeInTheDocument()
-    expect(screen.getByText(/1.3.0/i)).toBeInTheDocument()
+    expect(screen.getByText(/1.3.1/i)).toBeInTheDocument()
   })
 
   it('shows N/A values on config page when runtime config is missing', async () => {
@@ -57,7 +57,12 @@ describe('App', () => {
       CONFIG_FILE: '/etc/config/app.conf',
       CONFIG_FILE_CONTENT: 'ERROR: File does not exist',
       CONFIG_FILE_VOL: '/mnt/secrets/vol.conf',
-      CONFIG_FILE_VOL_CONTENT: 'volume file content',
+      CONFIG_FILE_VOL_CONTENT: {
+        greeting: 'hello',
+        nested: {
+          quote: 'value with "quotes"',
+        },
+      },
     }
 
     const user = userEvent.setup()
@@ -70,6 +75,7 @@ describe('App', () => {
     expect(screen.getByText('/etc/config/app.conf')).toBeInTheDocument()
     expect(screen.getByText('ERROR: File does not exist')).toBeInTheDocument()
     expect(screen.getByText('/mnt/secrets/vol.conf')).toBeInTheDocument()
-    expect(screen.getByText('volume file content')).toBeInTheDocument()
+    expect(screen.getByText(/"greeting": "hello"/i)).toBeInTheDocument()
+    expect(screen.getByText(/"quote": "value with \\"quotes\\""/i)).toBeInTheDocument()
   })
 })

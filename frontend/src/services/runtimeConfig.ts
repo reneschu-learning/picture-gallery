@@ -1,4 +1,4 @@
-import type { RuntimeConfig } from '../types'
+import type { RuntimeConfig, RuntimeConfigFileContent } from '../types'
 
 const NOT_AVAILABLE = 'N/A'
 
@@ -21,6 +21,12 @@ function valueOrDefault(value: string | undefined): string {
   return value ?? NOT_AVAILABLE
 }
 
+function fileContentOrDefault(
+  value: RuntimeConfigFileContent | undefined,
+): RuntimeConfigFileContent {
+  return value ?? NOT_AVAILABLE
+}
+
 export function getRuntimeConfig(): RuntimeConfig {
   const config = window.__RUNTIME_CONFIG__
 
@@ -32,8 +38,8 @@ export function getRuntimeConfig(): RuntimeConfig {
     CONFIG_VAR1: valueOrDefault(config.CONFIG_VAR1),
     SECRET1: valueOrDefault(config.SECRET1),
     CONFIG_FILE: valueOrDefault(config.CONFIG_FILE),
-    CONFIG_FILE_CONTENT: valueOrDefault(config.CONFIG_FILE_CONTENT),
+    CONFIG_FILE_CONTENT: fileContentOrDefault(config.CONFIG_FILE_CONTENT),
     CONFIG_FILE_VOL: valueOrDefault(config.CONFIG_FILE_VOL),
-    CONFIG_FILE_VOL_CONTENT: valueOrDefault(config.CONFIG_FILE_VOL_CONTENT),
+    CONFIG_FILE_VOL_CONTENT: fileContentOrDefault(config.CONFIG_FILE_VOL_CONTENT),
   }
 }

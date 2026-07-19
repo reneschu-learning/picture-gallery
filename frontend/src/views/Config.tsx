@@ -1,4 +1,9 @@
 import { getRuntimeConfig } from '../services/runtimeConfig'
+import type { RuntimeConfigFileContent } from '../types'
+
+function formatConfigValue(value: string | RuntimeConfigFileContent): string {
+  return typeof value === 'string' ? value : JSON.stringify(value, null, 2)
+}
 
 function Config() {
   const config = getRuntimeConfig()
@@ -11,27 +16,39 @@ function Config() {
       <dl className="about-list">
         <div className="about-row">
           <dt>CONFIG_VAR1</dt>
-          <dd>{config.CONFIG_VAR1}</dd>
+          <dd>
+            <pre className="config-value">{formatConfigValue(config.CONFIG_VAR1)}</pre>
+          </dd>
         </div>
         <div className="about-row">
           <dt>SECRET1</dt>
-          <dd>{config.SECRET1}</dd>
+          <dd>
+            <pre className="config-value">{formatConfigValue(config.SECRET1)}</pre>
+          </dd>
         </div>
         <div className="about-row">
           <dt>CONFIG_FILE</dt>
-          <dd>{config.CONFIG_FILE}</dd>
+          <dd>
+            <pre className="config-value">{formatConfigValue(config.CONFIG_FILE)}</pre>
+          </dd>
         </div>
         <div className="about-row">
           <dt>CONFIG_FILE content</dt>
-          <dd>{config.CONFIG_FILE_CONTENT}</dd>
+          <dd>
+            <pre className="config-value">{formatConfigValue(config.CONFIG_FILE_CONTENT)}</pre>
+          </dd>
         </div>
         <div className="about-row">
           <dt>CONFIG_FILE_VOL</dt>
-          <dd>{config.CONFIG_FILE_VOL}</dd>
+          <dd>
+            <pre className="config-value">{formatConfigValue(config.CONFIG_FILE_VOL)}</pre>
+          </dd>
         </div>
         <div className="about-row">
           <dt>CONFIG_FILE_VOL content</dt>
-          <dd>{config.CONFIG_FILE_VOL_CONTENT}</dd>
+          <dd>
+            <pre className="config-value">{formatConfigValue(config.CONFIG_FILE_VOL_CONTENT)}</pre>
+          </dd>
         </div>
       </dl>
     </main>

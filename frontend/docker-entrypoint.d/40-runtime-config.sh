@@ -43,20 +43,41 @@ js_escape() {
       -e 's/\r/\\r/g'
 }
 
+json_string_literal() {
+  printf '"%s"' "$(printf '%s' "$1" | js_escape)"
+}
+
+json_file_content_or_status() {
+  var_name="$1"
+
+  if ! is_set "$var_name"; then
+    json_string_literal "$NOT_SET_VALUE"
+    return
+  fi
+
+  eval "file_path=\${$var_name}"
+
+  if [ -f "$file_path" ]; then
+    cat "$file_path"
+  else
+    json_string_literal "$MISSING_FILE_VALUE"
+  fi
+}
+
 config_var1="$(value_or_na CONFIG_VAR1)"
 secret1="$(value_or_na SECRET1)"
 config_file="$(value_or_na CONFIG_FILE)"
-config_file_content="$(file_content_or_status CONFIG_FILE)"
+config_file_content="$(json_file_content_or_status CONFIG_FILE)"
 config_file_vol="$(value_or_na CONFIG_FILE_VOL)"
-config_file_vol_content="$(file_content_or_status CONFIG_FILE_VOL)"
+config_file_vol_content="$(json_file_content_or_status CONFIG_FILE_VOL)"
 
 cat > "$OUTPUT_FILE" <<EOF
 window.__RUNTIME_CONFIG__ = {
   CONFIG_VAR1: "$(printf '%s' "$config_var1" | js_escape)",
   SECRET1: "$(printf '%s' "$secret1" | js_escape)",
   CONFIG_FILE: "$(printf '%s' "$config_file" | js_escape)",
-  CONFIG_FILE_CONTENT: "$(printf '%s' "$config_file_content" | js_escape)",
+  CONFIG_FILE_CONTENT: $config_file_content,
   CONFIG_FILE_VOL: "$(printf '%s' "$config_file_vol" | js_escape)",
-  CONFIG_FILE_VOL_CONTENT: "$(printf '%s' "$config_file_vol_content" | js_escape)"
+  CONFIG_FILE_VOL_CONTENT: $config_file_vol_content
 };
 EOF
