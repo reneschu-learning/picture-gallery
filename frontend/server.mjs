@@ -84,8 +84,13 @@ export function createApp({ startupDelayMs = DEFAULT_STARTUP_DELAY_MS, now = Dat
   }
 
   app.use((request, response, next) => {
-    if (request.path === '/health') {
+    if (request.path === '/health' || request.path === '/api/health-state') {
       next()
+      return
+    }
+
+    if (isUnhealthy) {
+      response.status(503).json({ error: 'Frontend server is unhealthy' })
       return
     }
 

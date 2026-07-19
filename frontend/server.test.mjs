@@ -29,4 +29,32 @@ describe('frontend server startup delay', () => {
     expect(healthStateResponse.status).toBe(200)
     expect(healthStateResponse.body).toEqual({ isUnhealthy: false })
   })
+
+  it('returns 503 for regular routes when unhealthy and allows recovery through toggle endpoint', async () => {
+    let nowMs = 0
+    const app = createApp({ startupDelayMs: 30_000, now: () => nowMs })
+    nowMs = 30_000
+
+    const setUnhealthyResponse = await request(app)
+      .post('/api/health-state')
+      .send({ isUnhealthy: true })
+    expect(setUnhealthyResponse.status).toBe(200)
+    expect(setUnhealthyResponse.body).toEqual({ isUnhealthy: true })
+
+    const runtimeConfigWhenUnhealthy = await request(app).get('/api/runtime-config')
+    expect(runtimeConfigWhenUnhealthy.status).toBe(503)
+    expect(runtimeConfigWhenUnhealthy.body).toEqual({ error: 'Frontend server is unhealthy' })
+
+    const healthWhenUnhealthy = await request(app).get('/health')
+    expect(healthWhenUnhealthy.status).toBe(503)
+
+    const setHealthyResponse = await request(app)
+      .post('/api/health-state')
+      .send({ isUnhealthy: false })
+    expect(setHealthyResponse.status).toBe(200)
+    expect(setHealthyResponse.body).toEqual({ isUnhealthy: false })
+
+    const runtimeConfigWhenRecovered = await request(app).get('/api/runtime-config')
+    expect(runtimeConfigWhenRecovered.status).toBe(200)
+  })
 })
