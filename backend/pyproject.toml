@@ -1,0 +1,15 @@
+[project]
+name = "picture-gallery-backend"
+version = "1.0.0"
+description = "Flask backend API for picture-gallery"
+requires-python = ">=3.12"
+
+dependencies = [
+  "flask==3.1.2",
+  "gunicorn==23.0.0",
+]
+
+[project.optional-dependencies]
+test = [
+  "pytest==8.4.2",
+]
