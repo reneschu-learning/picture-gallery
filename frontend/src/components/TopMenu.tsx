@@ -12,6 +12,9 @@ function TopMenu() {
       <NavLink to="/about" className={getNavClassName}>
         About
       </NavLink>
+      <NavLink to="/config" className={getNavClassName}>
+        Config
+      </NavLink>
     </nav>
   )
 }
