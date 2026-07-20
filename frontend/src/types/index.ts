@@ -33,3 +33,5 @@ export interface RuntimeConfig {
 export interface FrontendHealthState {
   isUnhealthy: boolean
 }
+
+export type ThemeName = 'light' | 'dark' | 'colorful'

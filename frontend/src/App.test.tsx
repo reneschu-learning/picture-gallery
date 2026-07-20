@@ -63,6 +63,8 @@ function renderApp(initialPath = '/') {
 describe('App', () => {
   beforeEach(() => {
     installFetchMock()
+    document.documentElement.removeAttribute('data-theme')
+    globalThis.localStorage.clear()
   })
 
   afterEach(() => {
@@ -93,13 +95,31 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: /about/i })).toBeInTheDocument()
     expect(screen.getByText(/demo application/i)).toBeInTheDocument()
     expect(screen.getByText(/microsoft/i)).toBeInTheDocument()
-    expect(screen.getByText(/2.2.1/i)).toBeInTheDocument()
+    expect(screen.getByText(/2.3.0/i)).toBeInTheDocument()
 
     const loggedPages = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls
       .filter(([url]) => url === '/api/visit-log')
       .map(([, init]) => JSON.parse((init as RequestInit).body as string).page)
 
     expect(loggedPages).toContain('about')
+  })
+
+  it('switches themes from the top menu selector', async () => {
+    const user = userEvent.setup()
+    renderApp('/')
+
+    const themeSelector = screen.getByRole('combobox', { name: /select theme/i })
+    expect(themeSelector).toHaveValue('light')
+
+    await user.selectOptions(themeSelector, 'dark')
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    expect(globalThis.localStorage.getItem('picture-gallery-theme')).toBe('dark')
+
+    await user.selectOptions(themeSelector, 'colorful')
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('colorful')
+    expect(globalThis.localStorage.getItem('picture-gallery-theme')).toBe('colorful')
   })
 
   it('shows N/A values on config page when runtime config values are N/A', async () => {
