@@ -4,6 +4,11 @@ import { describe, expect, it } from 'vitest'
 import { createApp } from './server.mjs'
 
 describe('frontend server startup delay', () => {
+  afterEach(() => {
+    delete process.env.FRONTEND_BASE_PATH
+    delete process.env.BASE_PATH
+  })
+
   it('returns 500 on /health and blocks regular routes during first 30 seconds', async () => {
     let nowMs = 0
     const app = createApp({ startupDelayMs: 30_000, now: () => nowMs })
@@ -56,5 +61,23 @@ describe('frontend server startup delay', () => {
 
     const runtimeConfigWhenRecovered = await request(app).get('/api/runtime-config')
     expect(runtimeConfigWhenRecovered.status).toBe(200)
+  })
+
+  it('serves API and SPA routes under configured frontend base path', async () => {
+    process.env.FRONTEND_BASE_PATH = '/v4'
+
+    let nowMs = 0
+    const app = createApp({ startupDelayMs: 30_000, now: () => nowMs })
+    nowMs = 30_000
+
+    const prefixedRuntimeConfig = await request(app).get('/v4/api/runtime-config')
+    expect(prefixedRuntimeConfig.status).toBe(200)
+
+    const prefixedHealth = await request(app).get('/v4/health')
+    expect(prefixedHealth.status).toBe(200)
+
+    const spaResponse = await request(app).get('/v4/about')
+    expect(spaResponse.status).toBe(200)
+    expect(spaResponse.text).toContain('window.__APP_BASE_PATH__="/v4"')
   })
 })

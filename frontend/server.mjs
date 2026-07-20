@@ -12,9 +12,63 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 const distDirectory = path.join(__dirname, 'dist')
 const DEFAULT_STARTUP_DELAY_MS = 30_000
+const DEFAULT_BASE_PATH = '/'
+
+let indexTemplatePromise
 
 function hasValue(value) {
   return typeof value === 'string' && value.length > 0
+}
+
+function normalizeBasePath(value) {
+  if (!hasValue(value)) {
+    return DEFAULT_BASE_PATH
+  }
+
+  const trimmed = value.trim()
+  if (trimmed === '' || trimmed === DEFAULT_BASE_PATH) {
+    return DEFAULT_BASE_PATH
+  }
+
+  const withLeadingSlash = trimmed.startsWith('/') ? trimmed : `/${trimmed}`
+  const withoutTrailingSlash = withLeadingSlash.replace(/\/+$/, '')
+  return withoutTrailingSlash === '' ? DEFAULT_BASE_PATH : withoutTrailingSlash
+}
+
+function prefixedPath(basePath, routePath) {
+  if (basePath === DEFAULT_BASE_PATH) {
+    return routePath
+  }
+
+  return `${basePath}${routePath}`
+}
+
+function routePaths(basePath, routePath) {
+  if (basePath === DEFAULT_BASE_PATH) {
+    return [routePath]
+  }
+
+  return [routePath, prefixedPath(basePath, routePath)]
+}
+
+async function readIndexTemplate() {
+  if (!indexTemplatePromise) {
+    indexTemplatePromise = readFile(path.join(distDirectory, 'index.html'), 'utf-8')
+  }
+
+  return indexTemplatePromise
+}
+
+async function sendIndexHtml(response, basePath) {
+  const template = await readIndexTemplate()
+  const runtimeBasePathScript = `<script>window.__APP_BASE_PATH__=${JSON.stringify(basePath)};</script>`
+
+  if (template.includes('</head>')) {
+    response.type('html').send(template.replace('</head>', `  ${runtimeBasePathScript}\n  </head>`))
+    return
+  }
+
+  response.type('html').send(`${runtimeBasePathScript}\n${template}`)
 }
 
 function valueOrDefault(value) {
@@ -75,16 +129,21 @@ async function configFileVolContent(backendService, configFileVol) {
 export function createApp({ startupDelayMs = DEFAULT_STARTUP_DELAY_MS, now = Date.now } = {}) {
   const app = express()
   app.use(express.json())
+  const basePath = normalizeBasePath(process.env.FRONTEND_BASE_PATH ?? process.env.BASE_PATH)
 
   let isUnhealthy = false
   const startupStartedAt = now()
+  const healthPathSet = new Set([
+    ...routePaths(basePath, '/health'),
+    ...routePaths(basePath, '/api/health-state'),
+  ])
 
   function isInStartupDelay() {
     return now() - startupStartedAt < startupDelayMs
   }
 
   app.use((request, response, next) => {
-    if (request.path === '/health' || request.path === '/api/health-state') {
+    if (healthPathSet.has(request.path)) {
       next()
       return
     }
@@ -102,7 +161,7 @@ export function createApp({ startupDelayMs = DEFAULT_STARTUP_DELAY_MS, now = Dat
     response.status(503).json({ error: 'Frontend server is starting up' })
   })
 
-  app.get('/api/runtime-config', async (_request, response) => {
+  app.get(routePaths(basePath, '/api/runtime-config'), async (_request, response) => {
     const configVar1 = process.env.CONFIG_VAR1
     const secret1 = process.env.SECRET1
     const configFile = process.env.CONFIG_FILE
@@ -122,7 +181,7 @@ export function createApp({ startupDelayMs = DEFAULT_STARTUP_DELAY_MS, now = Dat
     response.json(payload)
   })
 
-  app.post('/api/visit-log', async (request, response) => {
+  app.post(routePaths(basePath, '/api/visit-log'), async (request, response) => {
     const payload = typeof request.body === 'object' && request.body !== null ? request.body : {}
 
     const page = hasValue(payload.page) ? payload.page : 'unknown'
@@ -151,11 +210,11 @@ export function createApp({ startupDelayMs = DEFAULT_STARTUP_DELAY_MS, now = Dat
     response.json({ status: 'ok' })
   })
 
-  app.get('/api/health-state', (_request, response) => {
+  app.get(routePaths(basePath, '/api/health-state'), (_request, response) => {
     response.json({ isUnhealthy })
   })
 
-  app.post('/api/health-state', (request, response) => {
+  app.post(routePaths(basePath, '/api/health-state'), (request, response) => {
     const payload = typeof request.body === 'object' && request.body !== null ? request.body : {}
 
     if (typeof payload.isUnhealthy !== 'boolean') {
@@ -167,7 +226,7 @@ export function createApp({ startupDelayMs = DEFAULT_STARTUP_DELAY_MS, now = Dat
     response.json({ isUnhealthy })
   })
 
-  app.get('/health', (_request, response) => {
+  app.get(routePaths(basePath, '/health'), (_request, response) => {
     const payload = { timestamp: new Date().toISOString() }
 
     if (isInStartupDelay()) {
@@ -183,12 +242,21 @@ export function createApp({ startupDelayMs = DEFAULT_STARTUP_DELAY_MS, now = Dat
     response.json(payload)
   })
 
-  app.use(express.static(distDirectory))
+  app.use(basePath, express.static(distDirectory, { index: false }))
 
   // Express 5 requires named wildcards; this catches all SPA routes.
-  app.get('/{*path}', (_request, response) => {
-    response.sendFile(path.join(distDirectory, 'index.html'))
-  })
+  if (basePath === DEFAULT_BASE_PATH) {
+    app.get('/{*path}', async (_request, response) => {
+      await sendIndexHtml(response, basePath)
+    })
+  } else {
+    app.get(basePath, async (_request, response) => {
+      await sendIndexHtml(response, basePath)
+    })
+    app.get(`${basePath}/{*path}`, async (_request, response) => {
+      await sendIndexHtml(response, basePath)
+    })
+  }
 
   return app
 }

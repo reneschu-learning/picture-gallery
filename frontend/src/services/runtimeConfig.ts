@@ -1,4 +1,5 @@
 import type { RuntimeConfig, RuntimeConfigFileContent } from '../types'
+import { withBasePath } from './basePath'
 
 const NOT_AVAILABLE = 'N/A'
 
@@ -50,7 +51,7 @@ function normalizeConfig(config: unknown): RuntimeConfig {
 
 export async function getRuntimeConfig(): Promise<RuntimeConfig> {
   try {
-    const response = await fetch('/api/runtime-config', { method: 'GET' })
+    const response = await fetch(withBasePath('/api/runtime-config'), { method: 'GET' })
     if (!response.ok) {
       return DEFAULT_CONFIG
     }

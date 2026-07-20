@@ -21,6 +21,7 @@ The client reads runtime values from /api/runtime-config instead of window-injec
 - CONFIG_FILE
 - CONFIG_FILE_VOL
 - BACKEND_SERVICE
+- FRONTEND_BASE_PATH (optional, default: /)
 
 Behavior notes:
 
@@ -28,6 +29,8 @@ Behavior notes:
 - CONFIG_FILE_VOL content is resolved by calling BACKEND_SERVICE/getContent?path=<CONFIG_FILE_VOL>.
 - If BACKEND_SERVICE is missing, CONFIG_FILE_VOL content is returned as ERROR: Backend not configured.
 - If BACKEND_SERVICE is unreachable, CONFIG_FILE_VOL content is returned as ERROR: Backend not reachable.
+- FRONTEND_BASE_PATH lets you run the app under an ingress path prefix (for example, /v4 or /v5).
+- When FRONTEND_BASE_PATH is set, SPA routes and runtime API endpoints are also available under that prefix, for example /v4/about and /v4/api/runtime-config.
 
 ## Page visit logging
 

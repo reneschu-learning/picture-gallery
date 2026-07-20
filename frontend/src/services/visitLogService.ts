@@ -1,3 +1,5 @@
+import { withBasePath } from './basePath'
+
 interface PageVisitPayload {
   page: string
   userAgent: string
@@ -14,7 +16,7 @@ function createPayload(page: string): PageVisitPayload {
 
 export async function sendPageVisitLog(page: string): Promise<void> {
   try {
-    await fetch('/api/visit-log', {
+    await fetch(withBasePath('/api/visit-log'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(createPayload(page)),
